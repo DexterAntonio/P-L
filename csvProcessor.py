@@ -45,8 +45,8 @@ class Trade:
         #process option type
         self.tradeType = row[1]
         #process market symbol
-        tmpStrArray = row[2].split(" ")
-        self.symbol = tmpStrArray[0]
+        #tmpStrArray = row[2].split(" ")
+        self.symbol = row[2]
         #if option tmpStrArray[1] and [2] have values DO LATER
 
         #process QTY 
@@ -125,7 +125,7 @@ with open(csvFileName,'rb') as f:
     for row in reader: 
         j += 1 
         
-        if(j>2 and j<748): #need to find way to skip last line b/c that breaks things 
+        if(j>2 and j<748): #need to find way to skip last line b/c that breaks things hence the 748
             newTrade = Trade(row) 
             if(newTrade.symbol in inTrades):
                 tmpFullTrade = inTrades[newTrade.symbol]
