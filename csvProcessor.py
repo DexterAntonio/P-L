@@ -7,6 +7,8 @@ Created on Fri Nov 10 11:51:19 2017
 import datetime
 import csv 
 import re 
+from tabulate import tabulate   
+
 class Trade:
     def __init__(self,row):
         #defaults for testing purposes 
@@ -98,7 +100,7 @@ class FullTrade:
             self.symbol = trades.symbol
             self.tradeType = trades.tradeType
             self.grossProfit += trades.price*trades.quanity 
-            self.netProfit += trades.price*trades.quanity + trades.commision+trades.regFee
+            self.netProfit += trades.netAmount #trades.price*trades.quanity + trades.commision+trades.regFee
             self.netQuanity += trades.quanity 
             self.netComission += trades.commision
             if(self.startDate>trades.dateTime): #if tmpStartDate is greater than the trade datetime
@@ -114,8 +116,76 @@ class FullTrade:
     def getListNames(self):
         return ["symbol","trade type","long/short", "gross Profit", "netProfit","netQuanity","duration","netComission","start date","end date","trade number"]
 
+
+class PerformanceSummary:
+    def __init__(self,cTrades,inTrades):
+        self.cTrades = cTrades 
+    def printStats(self):
+        #profit loss variables 
+        gProfitLong = 0
+        gProfitShort = 0 
+        gLossLong = 0 
+        gLossShort = 0 
+        #counting variables 
+        iProfitLong = 0
+        iProfitShort = 0
+        iLossLong = 0 
+        iLossShort = 0 
+        for l in [cTrades]:
+            for key in l:
+                t = l[key]
+                if(t.longOrShort == "long"): #if long 
+                    if(t.netProfit>0): #if Long 
+                        gProfitLong += t.netProfit 
+                        iProfitLong += 1
+                    else:
+                        gLossLong += t.netProfit
+                        iLossLong += 1 
+                else:
+                    if(t.netProfit>0):
+                        gProfitShort += t.netProfit
+                        iProfitShort += 1 
+                    else:
+                        gLossShort += t.netProfit
+                        iLossShort += 1 
+        #profit calculations            
+        netProfitLong = gProfitLong+gLossLong
+        netProfitShort = gProfitShort+gLossShort
+        netProfitTotal = netProfitLong+netProfitShort 
+        gProfitTotal = gProfitShort +gProfitLong
+        gLossTotal = gLossShort + gLossLong
+
+        pfTotal = gProfitTotal/(abs(gLossTotal)+0.0)
+        pfLong = gProfitLong/(abs(gLossLong)+0.0)
+        pfShort = gProfitShort/(abs(gLossShort)+0.0)
+        
+        print tabulate([['Total Net Profit',netProfitTotal,netProfitLong,netProfitShort],
+                        ['Gross Profit',gProfitTotal,gProfitLong,gProfitShort],
+                        ['Gross Loss',gLossTotal,gLossLong,gLossShort],
+                        ['Profit Factor',pfTotal,pfLong,pfShort]],
+                        headers=['','all trades','long trades','short trades'],tablefmt='orgbl')
+                
+        #counting calculations 
+        iProfitTotal = iProfitLong+iProfitShort
+        iLossTotal = iLossLong+iLossShort 
+        
+        iTotalLong = iProfitLong + iLossLong
+        iTotalShort = iProfitShort+iLossShort 
+        iTotalTotal = iTotalLong+iTotalShort
+        
+        ppLong = iProfitLong/(0.0+iTotalLong)*100 #percent profitable long 
+        ppShort = iProfitShort/(0.0+iTotalShort)*100 #percent profitable short 
+        ppTotal = iProfitTotal/(0.0+iTotalTotal)*100
+        print tabulate([['Total Number of Trades',iTotalTotal,iTotalLong,iTotalShort],
+                        ['Percent Profitable (%)',ppTotal,ppLong,ppShort],
+                        ['Winning Trades',iProfitTotal,iProfitLong,iProfitShort],
+                        ['Lossing Trades',iLossTotal,iLossLong,iLossShort]],
+                        headers=['','All Trades','Long Trades','Short Trades'],tablefmt='orgbl')
+        
+        
+        
+        
 #main function 
-   
 csvFileName = "ExecutionDetail.csv" 
 j = 0 
 inTrades = {} #incomplete trades
@@ -124,7 +194,6 @@ with open(csvFileName,'rb') as f:
     reader = csv.reader(f)
     for row in reader: 
         j += 1 
-        
         if(j>2 and j<748): #need to find way to skip last line b/c that breaks things hence the 748
             newTrade = Trade(row) 
             if(newTrade.symbol in inTrades):
@@ -140,7 +209,12 @@ with open(csvFileName,'rb') as f:
                 del inTrades[newTrade.symbol]
                 cTrades[newTrade.symbol] = tmpFullTrade 
 
+#performance summary calculator 
+pSum = PerformanceSummary(cTrades,inTrades)
+pSum.printStats()
 
+
+#saves all complete and incomplete trades to csv file 
 with open('output.csv', 'w') as csvfile:
     writer = csv.writer(csvfile, lineterminator = '\n')
     writer.writerow(FullTrade().getListNames())
