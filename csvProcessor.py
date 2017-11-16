@@ -22,6 +22,7 @@ class Trade:
         self.netAmount = 80.0 #note that during initiation make sells automatically negative for quanity
         self.avgATR = 10.0
         self.symbol = "" 
+        self.grossAmmount = 0 
         
         self.pRow(row)
     def getNumber(self,numStr):
@@ -45,11 +46,11 @@ class Trade:
         tmpStr = tmpStr.split("E")[0] #removes ET part of the string 
         #this checks for the occationally odd 09/29/2017 ET format is checked for by seeing if we can find " ET" 
         etCheck = re.compile("[\sET]*")
-        if(etCheck.match(row[0])):#checks for this odd format 
-            tmpStr = tmpStr.split(" ")[0]
-            self.datetime = datetime.datetime.strptime(tmpStr,"%m/%d/%Y")
-        else: 
-            self.dateTime = datetime.datetime.strptime(tmpStr,"%m/%d/%Y %H%M") #TO DO, SET TO EASTERN TIMEZONE 
+        #if(etCheck.match(row[0])):#checks for this odd format 
+        #    tmpStr = tmpStr.split(" ")[0]
+        #    self.datetime = datetime.datetime.strptime(tmpStr,"%m/%d/%Y")
+        #else: 
+        self.dateTime = datetime.datetime.strptime(tmpStr,"%m/%d/%Y %H%M") #TO DO, SET TO EASTERN TIMEZONE 
         #process option type
         self.tradeType = row[1]
         #process market symbol
@@ -65,7 +66,7 @@ class Trade:
         if(self.tradeType=="Option"): #the option quantities are in groups of 100 which is confusing 
             self.quanity*=100 
         self.price = self.getNumber(row[5]) 
-        self.gross = self.getNumber(row[6]) 
+        self.grossAmmount = self.getNumber(row[6]) 
         self.commision = self.getNumber(row[7])
         self.regFee = self.getNumber(row[8]) 
         self.netAmount = self.getNumber(row[9])
@@ -105,7 +106,7 @@ class FullTrade:
         for trades in self.listOfTrades:
             self.symbol = trades.symbol
             self.tradeType = trades.tradeType
-            self.grossProfit += trades.price*trades.quanity 
+            self.grossProfit += trades.grossAmmount 
             self.netProfit += trades.netAmount #trades.price*trades.quanity + trades.commision+trades.regFee
             self.netQuanity += trades.quanity 
             self.netComission += trades.commision
@@ -169,8 +170,8 @@ class PerformanceSummary:
                         ['Gross Profit',gProfitTotal,gProfitLong,gProfitShort],
                         ['Gross Loss',gLossTotal,gLossLong,gLossShort],
                         ['Profit Factor',pfTotal,pfLong,pfShort]],
-                        headers=['','all trades','long trades','short trades'],tablefmt='fancy_grid')
-                
+                        headers=['','All Trades','Long Trades','Short Trades'],tablefmt='pipe')
+        print "\n"
         #counting calculations 
         iProfitTotal = iProfitLong+iProfitShort
         iLossTotal = iLossLong+iLossShort 
@@ -186,22 +187,26 @@ class PerformanceSummary:
                         ['Percent Profitable (%)',ppTotal,ppLong,ppShort],
                         ['Winning Trades',iProfitTotal,iProfitLong,iProfitShort],
                         ['Lossing Trades',iLossTotal,iLossLong,iLossShort]],
-                        headers=['','All Trades','Long Trades','Short Trades'],tablefmt='fancy_grid')
+                        headers=['','All Trades','Long Trades','Short Trades'],tablefmt='pipe')
         
         
         
         
 #main function 
-csvFileName = "stock69.csv" 
+#csvFileName = "ExecutionDetail.csv"  #69 accoutn 
+csvFileName = "trades93.csv"
 j = 0 
 inTrades = {} #incomplete trades
 cTrades = {} #complete trades 
+
+csvFileLength = sum(1 for line in open(csvFileName)) #skips last line 
+
 with open(csvFileName,'rb') as f: 
     reader = csv.reader(f)
     for row in reader: 
         j += 1 
-        if(j>2 and j<11283): #need to find way to skip last line b/c that breaks things hence the 748
-            newTrade = Trade(row) 
+        if(j>2 and j<csvFileLength): #need to find way to skip last line b/c that breaks things hence the 748
+            newTrade = Trade(row)             
             if(newTrade.symbol in inTrades):
                 tmpFullTrade = inTrades[newTrade.symbol]
                 tmpFullTrade.addTrade(newTrade)
