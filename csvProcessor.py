@@ -11,7 +11,7 @@ from tabulate import tabulate
 
 class Trade:
     def __init__(self,row):
-        #defaults for testing purposes 
+        #defaults for testing purposes df
         self.dateTime = datetime.datetime.now() 
         self.quanity = 1.0 
         self.isBuy = False 
@@ -43,7 +43,13 @@ class Trade:
         #process date 
         tmpStr = row[0]
         tmpStr = tmpStr.split("E")[0] #removes ET part of the string 
-        self.dateTime = datetime.datetime.strptime(tmpStr,"%m/%d/%Y %H%M") #TO DO, SET TO EASTERN TIMEZONE 
+        #this checks for the occationally odd 09/29/2017 ET format is checked for by seeing if we can find " ET" 
+        etCheck = re.compile("[\sET]*")
+        if(etCheck.match(row[0])):#checks for this odd format 
+            tmpStr = tmpStr.split(" ")[0]
+            self.datetime = datetime.datetime.strptime(tmpStr,"%m/%d/%Y")
+        else: 
+            self.dateTime = datetime.datetime.strptime(tmpStr,"%m/%d/%Y %H%M") #TO DO, SET TO EASTERN TIMEZONE 
         #process option type
         self.tradeType = row[1]
         #process market symbol
@@ -163,7 +169,7 @@ class PerformanceSummary:
                         ['Gross Profit',gProfitTotal,gProfitLong,gProfitShort],
                         ['Gross Loss',gLossTotal,gLossLong,gLossShort],
                         ['Profit Factor',pfTotal,pfLong,pfShort]],
-                        headers=['','all trades','long trades','short trades'],tablefmt='orgbl')
+                        headers=['','all trades','long trades','short trades'],tablefmt='fancy_grid')
                 
         #counting calculations 
         iProfitTotal = iProfitLong+iProfitShort
@@ -180,13 +186,13 @@ class PerformanceSummary:
                         ['Percent Profitable (%)',ppTotal,ppLong,ppShort],
                         ['Winning Trades',iProfitTotal,iProfitLong,iProfitShort],
                         ['Lossing Trades',iLossTotal,iLossLong,iLossShort]],
-                        headers=['','All Trades','Long Trades','Short Trades'],tablefmt='orgbl')
+                        headers=['','All Trades','Long Trades','Short Trades'],tablefmt='fancy_grid')
         
         
         
         
 #main function 
-csvFileName = "ExecutionDetail.csv" 
+csvFileName = "stock69.csv" 
 j = 0 
 inTrades = {} #incomplete trades
 cTrades = {} #complete trades 
@@ -194,7 +200,7 @@ with open(csvFileName,'rb') as f:
     reader = csv.reader(f)
     for row in reader: 
         j += 1 
-        if(j>2 and j<748): #need to find way to skip last line b/c that breaks things hence the 748
+        if(j>2 and j<11283): #need to find way to skip last line b/c that breaks things hence the 748
             newTrade = Trade(row) 
             if(newTrade.symbol in inTrades):
                 tmpFullTrade = inTrades[newTrade.symbol]
